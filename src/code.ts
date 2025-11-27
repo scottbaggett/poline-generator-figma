@@ -3,8 +3,8 @@
 
 // @ts-ignore - __html__ is provided by Figma at runtime
 figma.showUI(__html__, {
-  width: 1200,
-  height: 840,
+  width: 980,
+  height: 500,
   themeColors: true
 });
 
@@ -17,21 +17,25 @@ function getStyleName(
   customNames?: string[]
 ): string {
   let name: string;
-  
+
   if (namingPattern === 'tailwind') {
-    if (index === 0) {
-      name = '50';
-    } else if (index === total - 1) {
-      name = '950';
+    // Standard Tailwind color scale
+    const tailwindScale = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+
+    if (total <= tailwindScale.length) {
+      // Map colors evenly across the scale
+      const scaleIndex = Math.round((index / (total - 1)) * (tailwindScale.length - 1));
+      name = `${tailwindScale[scaleIndex]}`;
     } else {
-      name = `${Math.round((index / (total - 1)) * 900)}`;
+      // More colors than scale values - use numeric fallback
+      name = `${index + 1}`;
     }
   } else if (namingPattern === 'custom' && customNames && customNames[index]) {
     name = customNames[index];
   } else {
     name = `${index + 1}`;
   }
-  
+
   return prefix ? `${prefix}/${name}` : name;
 }
 
@@ -41,10 +45,10 @@ figma.ui.onmessage = async (msg) => {
     const { colors, config } = msg;
     
     try {
-      const prefix = config?.prefix || 'Poline';
-      const namingPattern = config?.namingPattern || 'numeric';
-      const createVariables = config?.createVariables || false;
-      const customNames = config?.customNames;
+      const prefix = (config && config.prefix) || 'Poline';
+      const namingPattern = (config && config.namingPattern) || 'numeric';
+      const createVariables = (config && config.createVariables) || false;
+      const customNames = config && config.customNames;
       
       const createdStyles: string[] = [];
       

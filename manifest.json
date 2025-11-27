@@ -1,6 +1,5 @@
 {
   "name": "Poline Generator",
-  "author": "Scott Baggett <hello@scottbaggett.com>",
   "id": "poline-generator",
   "api": "1.0.0",
   "main": "code.js",

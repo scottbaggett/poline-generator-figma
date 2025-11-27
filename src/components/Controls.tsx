@@ -1,9 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { PaletteConfig, InterpolationMode } from '../../types';
-import { Sliders, RefreshCcw, Plus, Trash2, GripVertical, RefreshCcwDot, SquareIcon } from 'lucide-react';
+import { PaletteConfig, PositionFunction } from '../../types';
+import { positionFunctionNames } from '../utils/colorGen';
+import { Sliders, Plus, RefreshCcwDot, ChevronDown } from 'lucide-react';
 import { HexColorPicker } from "react-colorful";
-import { v4 as uuidv4 } from 'uuid'; // We'll simulate this since we don't have uuid package, just use random string
 import { Button } from './ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
+import { Slider } from './ui/slider';
+import { Checkbox } from './ui/checkbox';
 
 // Helper for ID generation
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -42,10 +50,8 @@ const ColorInput: React.FC<{
 
   return (
     <div className="flex gap-2 relative group flex-row">
-   
- 
         <Button
-        type="button"
+          type="button"
           size="icon-lg"
           variant="secondary"
           style={{ backgroundColor: color }}
@@ -54,7 +60,7 @@ const ColorInput: React.FC<{
 
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 z-50 shadow-2xl rounded-lg p-3 bg-gray-900 border border-gray-800 w-full" ref={popover}>
+        <div className="absolute top-full left-0 mt-2 z-50 shadow-2xl rounded-lg p-3 bg-background border  w-full" ref={popover}>
            <HexColorPicker color={color} onChange={onChange} />
         </div>
       )}
@@ -97,16 +103,15 @@ export const Controls: React.FC<ControlsProps> = ({ config, setConfig }) => {
   };
 
   return (
-    <div className="bg-background p-6 flex flex-col gap-10 h-full overflow-y-auto no-scrollbar">
+    <div className="bg-background flex flex-col  gap-6 h-full overflow-y-auto no-scrollbar">
       
       {/* Header */}
-      <div className="flex items-center gap-2 text-white pb-4 border-b border-gray-900">
-        <Sliders className="w-4 h-4 text-white" />
-        <h2 className="font-bold text-sm tracking-wide">CONFIG</h2>
+      <div className="flex content-center gap-2 border-b h-12 px-3 items-center">
+        <h2 className="font-bold text-sm tracking-wide text-foreground">CONFIG</h2>
       </div>
 
       {/* Anchors */}
-      <div className="space-y-4">
+      <div className="flex flex-col gap-2 px-3">
         <div className="flex justify-between items-center">
              <h3 className="text-sm font-semibold uppercase tracking-wider">Anchors</h3>
             <Button variant="ghost" size="icon" onClick={handleReverse}>
@@ -137,61 +142,79 @@ export const Controls: React.FC<ControlsProps> = ({ config, setConfig }) => {
       </div>
       </div>
 
-      {/* Steps */}
-      <div className="space-y-4">
+      {/* Points per Segment */}
+      <div className="flex flex-col gap-2 px-3">
         <div className="flex justify-between items-baseline">
-            <h3 className="text-xs font-semibold text-white">Steps</h3>
-            <span className="text-xs font-mono text-gray-500">{config.steps}</span>
+            <h3 className="text-xs font-semibold text-foreground">Points</h3>
+            <span className="text-xs font-mono text-muted-foreground">{config.steps}</span>
         </div>
-        <input
-          type="range"
-          min="2"
-          max="24"
-          value={config.steps}
-          onChange={(e) => setConfig(prev => ({ ...prev, steps: parseInt(e.target.value) }))}
-          className="w-full h-1 bg-gray-900 rounded-lg appearance-none cursor-pointer accent-white hover:accent-gray-300"
+        <Slider
+          min={2}
+          max={20}
+          step={1}
+          defaultValue={[config.steps]}
+          onValueChange={(value) => setConfig(prev => ({ ...prev, steps: value[0] }))}
         />
       </div>
 
-      {/* Interpolation Mode */}
-      <div className="space-y-4">
-        <h3 className="text-xs font-semibold text-white">Interpolation</h3>
-        <div className="grid grid-cols-2 gap-2">
-            {Object.values(InterpolationMode).map((m) => (
-                <button
-                    key={m}
-                    onClick={() => setConfig(prev => ({ ...prev, mode: m }))}
-                    className={`px-3 py-3 text-xs rounded border font-mono transition-all text-center uppercase tracking-wider ${
-                        config.mode === m 
-                        ? 'bg-white text-black border-white font-bold' 
-                        : 'bg-background border-gray-800 text-gray-500 hover:border-gray-600 hover:text-gray-300'
-                    }`}
-                >
-                    {m}
-                </button>
+      {/* Position Function */}
+      <div className="flex flex-col gap-2 px-3">
+        <h3 className="text-xs font-semibold">Distribution</h3>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              {positionFunctionNames[config.positionFunction]}
+              <ChevronDown className="w-4 h-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+            {Object.values(PositionFunction).map((fn) => (
+              <DropdownMenuItem
+                key={fn}
+                onClick={() => setConfig(prev => ({ ...prev, positionFunction: fn }))}
+                className={config.positionFunction === fn ? 'bg-secondary' : ''}
+              >
+                {positionFunctionNames[fn]}
+              </DropdownMenuItem>
             ))}
-        </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {/* Hue Rotation */}
-      <div className="space-y-4">
+      {/* Hue Shift */}
+      <div className="flex flex-col gap-2 px-3">
          <div className="flex justify-between items-baseline">
-            <h3 className="text-xs font-semibold text-white">Hue Shift</h3>
-            <span className="text-xs font-mono text-gray-500">{config.hueRotation}°</span>
+            <h3 className="text-xs font-semibold">Hue Shift</h3>
+            <span className="text-xs font-mono text-muted-foreground">{config.hueShift}°</span>
          </div>
-         
-        <div className="relative h-1 bg-gray-900 rounded-lg w-full flex items-center">
-            <input
-            type="range"
-            min="-360"
-            max="360"
-            step="10"
-            value={config.hueRotation}
-            onChange={(e) => setConfig(prev => ({ ...prev, hueRotation: parseInt(e.target.value) }))}
-            className="absolute w-full h-1 bg-transparent appearance-none cursor-pointer accent-white hover:accent-gray-300 z-10"
+
+            <Slider
+            min={-180}
+            max={180}
+            step={5}
+            value={[config.hueShift]}
+            onValueChange={(value) => setConfig(prev => ({ ...prev, hueShift: value[0] }))}
             />
-             {/* Center marker */}
-            <div className="absolute left-1/2 w-px h-3 bg-gray-700 -top-1"></div>
+      </div>
+
+      {/* Toggles */}
+      <div className="flex flex-col gap-2 px-3">
+        <h3 className="text-xs font-semibold">Options</h3>
+        <div className="flex flex-col gap-3">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <Checkbox
+              checked={config.closedLoop}
+              onCheckedChange={(checked) => setConfig(prev => ({ ...prev, closedLoop: checked }))}
+            />
+            <span className="text-xs text-muted-foreground">Closed Loop</span>
+          </label>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <Checkbox
+              checked={config.invertedLightness}
+              onCheckedChange={(checked) => setConfig(prev => ({ ...prev, invertedLightness: checked }))}
+            />
+            <span className="text-xs text-muted-foreground">Inverted Lightness</span>
+          </label>
         </div>
       </div>
 

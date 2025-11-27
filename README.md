@@ -1,20 +1,47 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Poline Generator
 
-# Run and deploy your AI Studio app
+A visual color palette generator built with [Poline](https://github.com/meodai/poline) - a library for creating perceptually uniform color palettes through HSL interpolation.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/1jfjZZ4jCJg8BGLG6ZuHe5MY2Bly14r4-
+- **Multi-anchor palettes** - Define multiple color anchor points and generate smooth gradients between them
+- **Position functions** - Choose from 8 interpolation curves (Linear, Exponential, Quadratic, Cubic, Quartic, Sinusoidal, Arc Sinusoidal, Arc)
+- **Hue shifting** - Apply rotational hue adjustments across the palette
+- **Closed loops** - Generate palettes that seamlessly loop back to the starting color
+- **Inverted lightness** - Flip the lightness direction for dark-to-light or light-to-dark gradients
+- **Export formats** - Copy colors as HEX, HSL, RGB, or LCH values
 
-## Run Locally
+## Getting Started
 
-**Prerequisites:**  Node.js
+**Prerequisites:** Node.js 18+
 
+```bash
+# Install dependencies
+pnpm install
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+# Start development server
+pnpm dev
+```
+
+## Build
+
+```bash
+# Build the UI
+pnpm build:ui
+
+# Build the Figma plugin
+pnpm build:plugin
+
+# Build both
+pnpm build
+```
+
+## Tech Stack
+
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS v4
+- [Poline](https://github.com/meodai/poline) for color interpolation
+- D3 for color space conversions
+- Radix UI primitives

@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
-import { copyFileSync } from 'fs';
+import { copyFileSync, readFileSync, writeFileSync } from 'fs';
 import { build } from 'vite';
 
 export default defineConfig(() => {
@@ -15,7 +15,7 @@ export default defineConfig(() => {
       plugins: [
         react(),
         tailwindcss(),
-        viteSingleFile(),
+        viteSingleFile({ removeViteModuleLoader: true }),
         {
           name: 'build-plugin-code',
           writeBundle: {
@@ -56,6 +56,25 @@ export default defineConfig(() => {
                 },
               });
               console.log('✓ Built code.js');
+
+              // Post-process HTML for Figma compatibility
+              const htmlPath = path.resolve(__dirname, 'dist', 'index.html');
+              let html = readFileSync(htmlPath, 'utf-8');
+
+              // Remove type="module" attribute
+              html = html.replace(/<script type="module" crossorigin>/g, '<script>');
+              html = html.replace(/<script type="module">/g, '<script>');
+
+              // Remove the Vite module preload polyfill (it's not needed and causes issues)
+              html = html.replace(/\(function\(\)\{const [a-z]=document\.createElement\("link"\)\.relList[\s\S]*?\.observe\(document,\{childList:!0,subtree:!0\}\)\}\)\(\);/g, '');
+
+              // Remove ES module export statements (Figma's sandbox doesn't support modules)
+              html = html.replace(/;export default [^;]+;?$/g, ';');
+              html = html.replace(/export default [^;]+;?/g, '');
+              html = html.replace(/export\{[^}]*\};?/g, '');
+
+              writeFileSync(htmlPath, html);
+              console.log('✓ Post-processed index.html for Figma compatibility');
             },
           },
         },
