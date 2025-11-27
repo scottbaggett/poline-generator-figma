@@ -26,13 +26,6 @@ pnpm dev
 ## Build
 
 ```bash
-# Build the UI
-pnpm build:ui
-
-# Build the Figma plugin
-pnpm build:plugin
-
-# Build both
 pnpm build
 ```
 
