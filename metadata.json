@@ -1,0 +1,5 @@
+{
+  "name": "Poline-ish Generator",
+  "description": "A design tool inspired by Poline to generate smooth, perceptually uniform color palettes and variables.",
+  "requestFramePermissions": []
+}

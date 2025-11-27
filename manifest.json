@@ -1,0 +1,19 @@
+{
+  "name": "Poline Generator",
+  "author": "Scott Baggett <hello@scottbaggett.com>",
+  "id": "poline-generator",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "index.html",
+  "editorType": [
+    "figma"
+  ],
+  "networkAccess": {
+    "allowedDomains": [
+      "https://aistudiocdn.com",
+      "https://cdn.tailwindcss.com",
+      "https://cdn.jsdelivr.net"
+    ]
+  }
+}
+
