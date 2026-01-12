@@ -79,3 +79,9 @@
     font-style: normal;
   }
 }
+
+@layer components {
+    .input-text {
+        @apply px-3 py-2 bg-background border border-border rounded text-foreground text-sm font-mono focus:outline-none focus:ring-1 focus:ring-secondary focus:border-secondary;
+    }
+}
