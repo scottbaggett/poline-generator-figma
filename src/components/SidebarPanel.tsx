@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   PaletteConfig,
   PositionFunction,
@@ -20,10 +20,11 @@ import {
   Palette,
   RotateCcw,
   Trash,
+  RefreshCw,
+  RotateCw,
 } from "lucide-react";
-import { HexColorInput, HexColorPicker } from "react-colorful";
+import { HexColorPicker } from "react-colorful";
 import { Button } from "./ui/button";
-import { TextInput } from "./ui/text-input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,9 +35,51 @@ import { Slider } from "./ui/slider";
 import { Checkbox } from "./ui/checkbox";
 import { DEFAULT_CONFIG } from "@/context/PaletteContext";
 import { cn } from "@/lib/utils";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "./ui/input-group";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 // Helper for ID generation
 const generateId = () => Math.random().toString(36).substr(2, 9);
+
+// Parse any CSS color format to hex
+const parseColorToHex = (input: string): string | null => {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  // Use canvas to parse any valid CSS color
+  const ctx = document.createElement("canvas").getContext("2d");
+  if (!ctx) return null;
+
+  ctx.fillStyle = "#000000";
+  ctx.fillStyle = trimmed;
+
+  // If the color didn't change from black, try with # prefix for bare hex
+  if (ctx.fillStyle === "#000000" && !trimmed.startsWith("#")) {
+    ctx.fillStyle = `#${trimmed}`;
+  }
+
+  const result = ctx.fillStyle;
+
+  // Canvas returns colors in hex or rgb format
+  if (result.startsWith("#")) {
+    return result;
+  }
+
+  // Parse rgb/rgba format from canvas
+  const rgbMatch = result.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (rgbMatch) {
+    const [, r, g, b] = rgbMatch;
+    return `#${[r, g, b].map((x) => parseInt(x).toString(16).padStart(2, "0")).join("")}`;
+  }
+
+  return null;
+};
 
 interface SidebarPanelProps {
   config: PaletteConfig;
@@ -47,52 +90,139 @@ interface SidebarPanelProps {
 // Sub-component for individual color input
 const ColorInput: React.FC<{
   color: string;
+  index: number;
   onChange: (hex: string) => void;
-}> = ({ color, onChange }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const popover = useRef<HTMLDivElement>(null);
+  onDelete?: () => void;
+  onDragStart: (index: number) => void;
+  onDragOver: (index: number) => void;
+  onDragEnd: () => void;
+  isDragging: boolean;
+  isDragOver: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}> = ({
+  color,
+  index,
+  onChange,
+  onDelete,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  isDragging,
+  isDragOver,
+  isOpen,
+  onOpenChange,
+}) => {
+    const [inputValue, setInputValue] = useState(color.replace("#", ""));
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (popover.current && !popover.current.contains(event.target as Node)) {
-        setIsOpen(false);
+    // Sync input value when color prop changes (e.g., from color picker)
+    useEffect(() => {
+      setInputValue(color.replace("#", ""));
+    }, [color]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setInputValue(value);
+
+      const trimmed = value.trim().toLowerCase();
+
+      // Check if input looks "complete" before parsing
+      const isCompleteHex = /^#?[0-9a-f]{3}$|^#?[0-9a-f]{6}$/i.test(trimmed);
+      const isCompleteFunction = /^(rgb|hsl)a?\([^)]+\)$/i.test(trimmed);
+      const isNamedBlack = ["black", "#000", "#000000", "000", "000000"].includes(
+        trimmed
+      );
+
+      if (!isCompleteHex && !isCompleteFunction) {
+        return; // Wait for more input
+      }
+
+      const parsed = parseColorToHex(value);
+      if (parsed) {
+        // Don't update to black unless explicitly typed
+        if (parsed === "#000000" && !isNamedBlack) {
+          return;
+        }
+        onChange(parsed);
       }
     };
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+    const commitColor = () => {
+      // Try to parse for named colors and other formats
+      const parsed = parseColorToHex(inputValue);
+      if (parsed) {
+        onChange(parsed);
+        setInputValue(parsed.replace("#", ""));
+      } else {
+        // Reset to current color if invalid
+        setInputValue(color.replace("#", ""));
+      }
     };
-  }, [isOpen]);
 
-  return (
-    <div className="flex gap-2 relative group flex-row">
-      <Button
-        type="button"
-        size="icon-lg"
-        variant="secondary"
-        style={{ backgroundColor: color }}
-        onClick={() => setIsOpen(true)}
-      />
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        commitColor();
+      }
+    };
 
-      {isOpen && (
-        <div
-          className="absolute top-full left-0 mt-2 z-50 shadow-2xl rounded-lg p-3 bg-background border"
-          ref={popover}
-        >
-          <HexColorPicker color={color} onChange={onChange} />
-          <HexColorInput
-            color={color}
-            onChange={onChange}
-            className="mt-2 w-full input-text"
-          />
-        </div>
-      )}
-    </div>
-  );
-};
+    return (
+      <div
+        className={cn(
+          "relative group transition-all",
+          isDragging && "opacity-50 scale-95",
+          isDragOver && "translate-x-2"
+        )}
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = "move";
+          onDragStart(index);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          onDragOver(index);
+        }}
+        onDragEnd={onDragEnd}
+      >
+        <Popover open={isOpen} onOpenChange={onOpenChange}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              size="icon-lg"
+              variant="secondary"
+              style={{ backgroundColor: color }}
+              className="cursor-grab active:cursor-grabbing"
+            />
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-auto p-3">
+            <HexColorPicker color={color} onChange={onChange} />
+            <InputGroup className="mt-2">
+              <InputGroupAddon align="inline-start">
+                <InputGroupText>#</InputGroupText>
+              </InputGroupAddon>
+              <InputGroupInput
+                value={inputValue}
+                onChange={handleInputChange}
+                onBlur={commitColor}
+                onKeyDown={handleKeyDown}
+                placeholder="ff0000 or rgb(255,0,0)"
+                className="font-mono text-sm"
+              />
+            </InputGroup>
+          </PopoverContent>
+        </Popover>
+        {onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-sm"
+          >
+            <Trash className="size-3" />
+          </button>
+        )}
+      </div>
+    );
+  };
 
 // Collapsible section component
 const CollapsibleSection: React.FC<{
@@ -105,16 +235,16 @@ const CollapsibleSection: React.FC<{
   <div className="border border-border rounded-lg overflow-hidden">
     <button
       onClick={onToggle}
-      className="w-full px-3 py-3 bg-card hover:bg-secondary/50 transition-colors flex items-center justify-between text-foreground text-xs font-bold uppercase tracking-wider"
+      className="w-full px-3 py-3 bg-card cursor-pointer hover:bg-card/50 transition-colors flex items-center justify-between text-foreground text-xs font-bold uppercase tracking-wider"
     >
       <div className="flex items-center gap-2">
         {icon}
         {title}
       </div>
       {isOpen ? (
-        <ChevronUp className="w-4 h-4" />
+        <ChevronUp className="size-4" />
       ) : (
-        <ChevronDown className="w-4 h-4" />
+        <ChevronDown className="size-4" />
       )}
     </button>
     {isOpen && (
@@ -153,6 +283,13 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
   const [figmaConfig, setFigmaConfig] =
     useState<FigmaStyleConfig>(DEFAULT_FIGMA_CONFIG);
 
+  // Drag state
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  // Popover state - tracks which color picker is open
+  const [openPopoverIndex, setOpenPopoverIndex] = useState<number | null>(null);
+
   useEffect(() => {
     // Listen for messages from plugin code
     const handleMessage = (event: MessageEvent) => {
@@ -190,11 +327,43 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
     setConfig((prev) => {
       const lastAnchor = prev.anchors[prev.anchors.length - 1];
       const newAnchor = { id: generateId(), hex: lastAnchor.hex };
+      // Open the popover for the new anchor (will be at the end)
+      setTimeout(() => setOpenPopoverIndex(prev.anchors.length), 0);
       return {
         ...prev,
         anchors: [...prev.anchors, newAnchor],
       };
     });
+  };
+
+  const deleteAnchor = (index: number) => {
+    setConfig((prev) => ({
+      ...prev,
+      anchors: prev.anchors.filter((_: unknown, i: number) => i !== index),
+    }));
+  };
+
+  // Drag handlers
+  const handleDragStart = (index: number) => {
+    setDragIndex(index);
+  };
+
+  const handleDragOver = (index: number) => {
+    if (dragIndex === null || dragIndex === index) return;
+    setDragOverIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    if (dragIndex !== null && dragOverIndex !== null && dragIndex !== dragOverIndex) {
+      setConfig((prev) => {
+        const newAnchors = [...prev.anchors];
+        const [draggedItem] = newAnchors.splice(dragIndex, 1);
+        newAnchors.splice(dragOverIndex, 0, draggedItem);
+        return { ...prev, anchors: newAnchors };
+      });
+    }
+    setDragIndex(null);
+    setDragOverIndex(null);
   };
 
   // Export handlers
@@ -333,20 +502,25 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
-                  size="icon-sm"
+                  size="xs"
                   onClick={handleReset}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground text-xs px-2"
                 >
-                  <Trash className="size-3 text-inherit!" />
+                  RESET
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={handleReverse}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <RefreshCcwDot className="size-3 text-inherit!" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={handleReverse}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <RotateCw className="size-3 text-inherit!" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Reverse order</TooltipContent>
+                </Tooltip>
                 <span className="text-xs font-mono text-muted-foreground">
                   {config.anchors.length}
                 </span>
@@ -357,13 +531,29 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
               {config.anchors.map((anchor, idx) => (
                 <ColorInput
                   key={anchor.id}
+                  index={idx}
                   color={anchor.hex}
                   onChange={(hex) => handleAnchorChange(idx, hex)}
+                  onDelete={
+                    config.anchors.length > 2
+                      ? () => deleteAnchor(idx)
+                      : undefined
+                  }
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDragEnd={handleDragEnd}
+                  isDragging={dragIndex === idx}
+                  isDragOver={dragOverIndex === idx}
+                  isOpen={openPopoverIndex === idx}
+                  onOpenChange={(open) =>
+                    setOpenPopoverIndex(open ? idx : null)
+                  }
                 />
               ))}
               <Button variant="secondary" size="icon-lg" onClick={addAnchor}>
                 <Plus className="w-3 h-3" />
               </Button>
+
             </div>
           </div>
           {/* Steps */}
@@ -392,7 +582,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="w-full justify-between">
                   {positionFunctionNames[config.positionFunction]}
-                  <ChevronDown className="w-4 h-4 opacity-50" />
+                  <ChevronDown className="size-4 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
@@ -478,46 +668,6 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
           </div>
         </CollapsibleSection>
 
-        {/* Export Section */}
-        <CollapsibleSection
-          title="Export"
-          icon={<Terminal className="w-3 h-3" />}
-          isOpen={showExport}
-          onToggle={() => setShowExport(!showExport)}
-        >
-          <div className="flex bg-secondary/50 rounded-lg p-1 gap-1">
-            {["css", "json", "tailwind"].map((f) => (
-              <button
-                key={f}
-                onClick={() => setFormat(f as "css" | "json" | "tailwind")}
-                className={`flex-1 px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider rounded-md transition-all ${
-                  format === f
-                    ? "bg-secondary text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-
-          <div className="relative group">
-            <pre className="bg-background rounded-lg p-4 text-xs font-mono text-muted-foreground overflow-x-auto h-32 border border-border scrollbar-thin">
-              {getCode()}
-            </pre>
-            <button
-              onClick={handleCopy}
-              className="absolute top-2 right-2 p-2 bg-secondary text-foreground rounded hover:bg-secondary/80 transition-all opacity-0 group-hover:opacity-100"
-              title="Copy to clipboard"
-            >
-              {copied ? (
-                <Check className="w-3 h-3" />
-              ) : (
-                <Copy className="w-3 h-3" />
-              )}
-            </button>
-          </div>
-        </CollapsibleSection>
 
         {/* Figma Styles Section */}
         <CollapsibleSection
@@ -528,17 +678,20 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
         >
           {/* Prefix */}
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-              Prefix
-            </label>
-            <TextInput
-              value={figmaConfig.prefix}
-              onChange={(e) =>
-                setFigmaConfig({ ...figmaConfig, prefix: e.target.value })
-              }
-              placeholder="Poline"
-              className="w-full"
-            />
+            <InputGroup className="w-full">
+              <InputGroupAddon align="inline-start">
+                <InputGroupText className="text-[10px] font-bold uppercase tracking-widest">
+                  Prefix
+                </InputGroupText>
+              </InputGroupAddon>
+              <InputGroupInput
+                value={figmaConfig.prefix}
+                onChange={(e) =>
+                  setFigmaConfig({ ...figmaConfig, prefix: e.target.value })
+                }
+                placeholder="poline"
+              />
+            </InputGroup>
           </div>
 
           {/* Naming Pattern */}
@@ -618,20 +771,61 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
           >
             {isCreatingStyles ? (
               <>
-                <div className="w-4 h-4 border-2 border-background border-t-transparent rounded-full animate-spin" />
+                <div className="size-4 border-2 border-background border-t-transparent rounded-full animate-spin" />
                 Creating {figmaConfig.createVariables ? "Variables" : "Styles"}
                 ...
               </>
             ) : (
               <>
-                <Figma className="w-4 h-4" />
+                <Figma className="size-4" />
                 Create Figma{" "}
                 {figmaConfig.createVariables ? "Variables" : "Styles"}
               </>
             )}
           </button>
         </CollapsibleSection>
-      </div>
-    </div>
+
+        {/* Export Section */}
+        <CollapsibleSection
+          title="Export"
+          icon={<Terminal className="w-3 h-3" />}
+          isOpen={showExport}
+          onToggle={() => setShowExport(!showExport)}
+        >
+          <div className="flex bg-secondary/50 rounded-lg p-1 gap-1">
+            {["css", "json", "tailwind"].map((f) => (
+              <button
+                key={f}
+                onClick={() => setFormat(f as "css" | "json" | "tailwind")}
+                className={`flex-1 px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider rounded-md transition-all ${format === f
+                  ? "bg-secondary text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative group">
+            <pre className="bg-background rounded-lg p-4 text-xs font-mono text-muted-foreground overflow-x-auto h-32 border border-border scrollbar-thin">
+              {getCode()}
+            </pre>
+            <button
+              onClick={handleCopy}
+              className="absolute top-2 right-2 p-2 bg-secondary text-foreground rounded hover:bg-secondary/80 transition-all opacity-0 group-hover:opacity-100"
+              title="Copy to clipboard"
+            >
+              {copied ? (
+                <Check className="w-3 h-3" />
+              ) : (
+                <Copy className="w-3 h-3" />
+              )}
+            </button>
+          </div>
+        </CollapsibleSection>
+
+      </div >
+    </div >
   );
 };
