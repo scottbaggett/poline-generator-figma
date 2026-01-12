@@ -319,7 +319,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
       {/* Header */}
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-">
+      <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-3">
         {/* Anchors Section */}
         <CollapsibleSection
           title="Config"
