@@ -78,7 +78,7 @@ const ColorInput: React.FC<{
 
       {isOpen && (
         <div
-          className="absolute top-full left-0 mt-2 z-50 shadow-2xl rounded-lg p-3 bg-background border w-full"
+          className="absolute top-full left-0 mt-2 z-50 shadow-2xl rounded-lg p-3 bg-background border"
           ref={popover}
         >
           <HexColorPicker color={color} onChange={onChange} />
