@@ -2,6 +2,9 @@
 
 A visual color palette generator built with [Poline](https://github.com/meodai/poline) - a library for creating perceptually uniform color palettes through HSL interpolation.
 
+![poline-generator](https://github.com/user-attachments/assets/ea10c1ca-c5f2-42b7-bf47-99413ab9430b)
+
+
 ## Features
 
 - **Multi-anchor palettes** - Define multiple color anchor points and generate smooth gradients between them
