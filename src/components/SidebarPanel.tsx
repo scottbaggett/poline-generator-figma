@@ -21,7 +21,7 @@ import {
   RotateCcw,
   Trash,
 } from "lucide-react";
-import { HexColorPicker } from "react-colorful";
+import { HexColorInput, HexColorPicker } from "react-colorful";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -82,6 +82,11 @@ const ColorInput: React.FC<{
           ref={popover}
         >
           <HexColorPicker color={color} onChange={onChange} />
+          <HexColorInput
+            color={color}
+            onChange={onChange}
+            className="mt-2 w-full input-text"
+          />
         </div>
       )}
     </div>
