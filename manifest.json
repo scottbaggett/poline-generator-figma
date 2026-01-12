@@ -1,9 +1,10 @@
 {
   "name": "Poline Generator",
-  "id": "poline-generator",
+  "id": "1592598562969378281",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "index.html",
+  "documentAccess": "dynamic-page",
   "editorType": [
     "figma"
   ],
