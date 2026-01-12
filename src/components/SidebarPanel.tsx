@@ -21,8 +21,9 @@ import {
   RotateCcw,
   Trash,
 } from "lucide-react";
-import { HexColorPicker } from "react-colorful";
+import { HexColorInput, HexColorPicker } from "react-colorful";
 import { Button } from "./ui/button";
+import { TextInput } from "./ui/text-input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,10 +79,15 @@ const ColorInput: React.FC<{
 
       {isOpen && (
         <div
-          className="absolute top-full left-0 mt-2 z-50 shadow-2xl rounded-lg p-3 bg-background border w-full"
+          className="absolute top-full left-0 mt-2 z-50 shadow-2xl rounded-lg p-3 bg-background border"
           ref={popover}
         >
           <HexColorPicker color={color} onChange={onChange} />
+          <HexColorInput
+            color={color}
+            onChange={onChange}
+            className="mt-2 w-full input-text"
+          />
         </div>
       )}
     </div>
@@ -313,7 +319,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
       {/* Header */}
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-">
+      <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-3">
         {/* Anchors Section */}
         <CollapsibleSection
           title="Config"
@@ -525,14 +531,13 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
               Prefix
             </label>
-            <input
-              type="text"
+            <TextInput
               value={figmaConfig.prefix}
               onChange={(e) =>
                 setFigmaConfig({ ...figmaConfig, prefix: e.target.value })
               }
               placeholder="Poline"
-              className="w-full px-3 py-2 bg-background border border-border rounded text-foreground text-sm font-mono focus:outline-none focus:ring-1 focus:ring-secondary focus:border-secondary"
+              className="w-full"
             />
           </div>
 

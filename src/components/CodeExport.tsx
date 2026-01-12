@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GeneratedColor, FigmaStyleConfig, FigmaNamingPattern } from '../../types';
 import { Copy, Check, Terminal, Figma, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from './ui/button';
+import { TextInput } from './ui/text-input';
 
 interface CodeExportProps {
   colors: GeneratedColor[];
@@ -204,12 +205,11 @@ export const CodeExport: React.FC<CodeExportProps> = ({ colors }) => {
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                 Prefix
               </label>
-              <input
-                type="text"
+              <TextInput
                 value={figmaConfig.prefix}
                 onChange={(e) => setFigmaConfig({ ...figmaConfig, prefix: e.target.value })}
                 placeholder="Poline"
-                className="w-full px-3 py-2 bg-background border border-border rounded text-foreground text-sm font-mono focus:outline-none focus:ring-1 focus:ring-secondary focus:border-secondary"
+                className="w-full"
               />
             </div>
 
