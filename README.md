@@ -2,6 +2,8 @@
 
 A visual color palette generator built with [Poline](https://github.com/meodai/poline) - a library for creating perceptually uniform color palettes through HSL interpolation inside Figma.
 
+[Figma Plugin](https://www.figma.com/community/plugin/1592598562969378281/poline-generator)
+
 ![poline-generator](https://github.com/user-attachments/assets/ea10c1ca-c5f2-42b7-bf47-99413ab9430b)
 
 
